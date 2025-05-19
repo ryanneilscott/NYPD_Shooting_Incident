@@ -1,0 +1,40 @@
+
+
+install.packages("tidyverse")
+
+library(tidyverse)
+
+global_cases <- read_csv("time_series_covid19_confirmed_global.csv")
+global_deaths <- read_csv("time_series_covid19_deaths_global.csv")
+US_cases <- read_csv("time_series_covid19_confirmed_US.csv")
+US_deaths <- read_csv("time_series_covid19_deaths_US.csv")
+
+head(global_cases, n = 5)
+
+global_cases <- global_cases %>%
+     pivot_longer(cols = -c('Province/State', 'Country/Region', Lat, Long),
+                  names_to = "date",
+                 values_to = "cases") %>%
+     select(-c(Lat, Long))
+
+head(global_cases, n = 5)
+
+
+global_deaths <- global_deaths %>%
+     pivot_longer(cols = -c('Province/State', 'Country/Region', Lat, Long),
+                  names_to = "date",
+                  values_to = "deaths") %>%
+     select(-c(Lat, Long))
+
+
+head(global_deaths, n=5)
+
+
+global <- global_cases %>%
+     full_join(global_deaths) %>%
+     rename(Country_Region = 'Country/Region',
+            Province_State = 'Province/State') %>%
+     mutate(date = mdy(date))
+
+
+summary(global)
