@@ -38,3 +38,47 @@ global <- global_cases %>%
 
 
 summary(global)
+
+# Removed rows where cases is 0
+global <- global %>% filter(cases > 0)
+
+
+
+US_cases <- US_cases %>%
+    pivot_longer(cols = -(UID:Combined_Key),
+                 names_to = "date",
+                 values_to = "cases") %>%
+    select(Admin2:cases) %>%
+    mutate(date = mdy(date)) %>%
+    select(-c(Lat, Long_))
+
+
+US_deaths <- US_deaths %>%
+    pivot_longer(cols = -(UID:Combined_Key),
+                 names_to = "date",
+                 values_to = "deaths") %>%
+    select(Admin2:deaths) %>%
+    mutate(date = mdy(date)) %>%
+    select(-c(Lat, Long_))
+
+US <- US_cases %>%
+     full_join(US_deaths)
+
+global <- global %>%
+     unite("Combined_Key",
+          c(Province_State, Country_Region),
+          sep = ", ",
+          na.rm = TRUE,
+          remove = FALSE)
+
+uid_lookup_url <- "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/UID_ISO_FIPS_LookUp_Table.csv"
+
+uid <- read_csv(uid_lookup_url) %>%
+     select(-c(Lat, Long_, Combined_Key, code3, iso2, iso3, Admin2))
+
+global <- global %>%
+     left_join(uid, by = c("Province_State", "Country_Region")) %>%
+     select(-c(UID, FIPS)) %>%
+     select(Province_State, Country_Region, date,
+          cases, deaths, Population,
+          Combined_Key)
