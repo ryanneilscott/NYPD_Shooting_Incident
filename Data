@@ -1,84 +1,67 @@
 
-
+## Installing the package Tidyverse to RStudio
 install.packages("tidyverse")
 
+
+## Bringing in the library into my console
 library(tidyverse)
 
-global_cases <- read_csv("time_series_covid19_confirmed_global.csv")
-global_deaths <- read_csv("time_series_covid19_deaths_global.csv")
-US_cases <- read_csv("time_series_covid19_confirmed_US.csv")
-US_deaths <- read_csv("time_series_covid19_deaths_US.csv")
 
-head(global_cases, n = 5)
-
-global_cases <- global_cases %>%
-     pivot_longer(cols = -c('Province/State', 'Country/Region', Lat, Long),
-                  names_to = "date",
-                 values_to = "cases") %>%
-     select(-c(Lat, Long))
-
-head(global_cases, n = 5)
+## Assigning the NYPD csv file to a variable
+NYPD <- read_csv("~/Desktop/Documents/Data Analysis Tools/Projects/RStudio Projects/NYPD/NYPD_Shooting_Incident_Data__Historic_.csv")
 
 
-global_deaths <- global_deaths %>%
-     pivot_longer(cols = -c('Province/State', 'Country/Region', Lat, Long),
-                  names_to = "date",
-                  values_to = "deaths") %>%
-     select(-c(Lat, Long))
+## Reviewing the column names of the NYPD dataset
+head(NYPD, n = 5)
 
 
-head(global_deaths, n=5)
+## Reviewing the descriptive statistics and classes of each column
+summary(NYPD)
 
 
-global <- global_cases %>%
-     full_join(global_deaths) %>%
-     rename(Country_Region = 'Country/Region',
-            Province_State = 'Province/State') %>%
-     mutate(date = mdy(date))
+## Removing columns that are not relevant to my analysis
+NYPD <- NYPD %>%
+     select(-Latitude, -Longitude, -Lon_Lat, -Y_COORD_CD, -X_COORD_CD)
 
 
-summary(global)
-
-# Removed rows where cases is 0
-global <- global %>% filter(cases > 0)
-
+## Changing the Occurance Date column from charater to Date format
+NYPD <- NYPD %>%
++     mutate(OCCUR_Date = as.Date(OCCUR_DATE, format = "%m/%d/%Y"))
 
 
-US_cases <- US_cases %>%
-    pivot_longer(cols = -(UID:Combined_Key),
-                 names_to = "date",
-                 values_to = "cases") %>%
-    select(Admin2:cases) %>%
-    mutate(date = mdy(date)) %>%
-    select(-c(Lat, Long_))
+# Reviewing the data range of the the Occurance date column
+date_summary <- NYPD %>%
+     summarise(
+         max_occur_date = max(OCCUR_Date, na.rm = TRUE),
+         min_occur_date = min(OCCUR_Date, na.rm = TRUE)
+     )
+
+print(date_summary)
 
 
-US_deaths <- US_deaths %>%
-    pivot_longer(cols = -(UID:Combined_Key),
-                 names_to = "date",
-                 values_to = "deaths") %>%
-    select(Admin2:deaths) %>%
-    mutate(date = mdy(date)) %>%
-    select(-c(Lat, Long_))
+## Grouping a count of occurances by year in prepartion to graph
+occurrences_by_year <- NYPD %>%
+     mutate(Occur_Year = format(OCCUR_Date, "%Y")) %>%
+     group_by(Occur_Year) %>%
+     summarise(Count = n()) %>%
+     ungroup() %>%
+     mutate(Occur_Year = as.numeric(Occur_Year)) %>%
+     arrange(Occur_Year)
 
-US <- US_cases %>%
-     full_join(US_deaths)
 
-global <- global %>%
-     unite("Combined_Key",
-          c(Province_State, Country_Region),
-          sep = ", ",
-          na.rm = TRUE,
-          remove = FALSE)
+ggplot(occurrences_by_year, aes(x = Occur_Year, y = Count)) +
+     geom_line(color = "steelblue", size = 1) + 
+     geom_point(color = "darkred", size = 2) +  
+     labs(
+         title = "Number of Occurrences by Year",
+         x = "Year",
+         y = "Number of Occurrences"
+     ) +
+     theme_minimal() +
+     theme(plot.title = element_text(hjust = 0.5)) +
+     scale_x_continuous(breaks = unique(occurrences_by_year$Occur_Year))
 
-uid_lookup_url <- "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/UID_ISO_FIPS_LookUp_Table.csv"
+## Review distinct values of the Boro and Location of Occurance Columns
+NYPD %>%
+    distinct(BORO, LOC_OF_OCCUR_DESC)
 
-uid <- read_csv(uid_lookup_url) %>%
-     select(-c(Lat, Long_, Combined_Key, code3, iso2, iso3, Admin2))
-
-global <- global %>%
-     left_join(uid, by = c("Province_State", "Country_Region")) %>%
-     select(-c(UID, FIPS)) %>%
-     select(Province_State, Country_Region, date,
-          cases, deaths, Population,
-          Combined_Key)
