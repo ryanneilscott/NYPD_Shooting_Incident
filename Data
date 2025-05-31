@@ -26,7 +26,7 @@ NYPD <- NYPD %>%
 
 ## Changing the Occurance Date column from charater to Date format
 NYPD <- NYPD %>%
-+     mutate(OCCUR_Date = as.Date(OCCUR_DATE, format = "%m/%d/%Y"))
+    mutate(OCCUR_Date = as.Date(OCCUR_DATE, format = "%m/%d/%Y"))
 
 
 # Reviewing the data range of the the Occurance date column
@@ -48,7 +48,7 @@ occurrences_by_year <- NYPD %>%
      mutate(Occur_Year = as.numeric(Occur_Year)) %>%
      arrange(Occur_Year)
 
-
+## Plotting the number of by year
 ggplot(occurrences_by_year, aes(x = Occur_Year, y = Count)) +
      geom_line(color = "steelblue", size = 1) + 
      geom_point(color = "darkred", size = 2) +  
@@ -61,7 +61,30 @@ ggplot(occurrences_by_year, aes(x = Occur_Year, y = Count)) +
      theme(plot.title = element_text(hjust = 0.5)) +
      scale_x_continuous(breaks = unique(occurrences_by_year$Occur_Year))
 
+
 ## Review distinct values of the Boro and Location of Occurance Columns
 NYPD %>%
     distinct(BORO, LOC_OF_OCCUR_DESC)
+
+
+## Grouping occurrences by Borough
+borough_counts <- NYPD %>%
+     count(BORO) %>%
+     mutate(BORO = fct_reorder(BORO, n))
+
+
+## Plotting the number of Occurences By Borough
+ ggplot(borough_counts, aes(x = BORO, y = n)) +
+     geom_col(fill = "steelblue") + 
+     labs(
+         title = "Number of Occurrences by Borough",
+         x = "Borough",
+         y = "Number of Occurrences"
+     ) +
+     theme_minimal() + 
+     theme(
+         plot.title = element_text(hjust = 0.5), # Center the title
+         axis.text.x = element_text(angle = 45, hjust = 1) 
+     )
+
 
